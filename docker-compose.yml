@@ -1,0 +1,88 @@
+version: "3.5"
+networks:
+  mynet:
+    name: mynet
+    ipam:
+      config:
+       - subnet: 172.15.0.0/16
+services:
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+           mynet:
+            ipv4_address: 172.15.0.101
+    container_name: prometheus 
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3003:3000"
+    volumes:
+      - ./grafana.ini:/etc/grafana/grafana.ini
+      - ./datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
+    links:
+      - prometheus
+    networks:
+           mynet:
+            ipv4_address: 172.15.0.102
+    container_name: grafana
+  cadvisor:
+    image: google/cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    ports:
+      - 8087:8080
+    networks:
+           mynet:
+            ipv4_address: 172.15.0.103
+    restart: always
+    deploy:
+      mode: global
+    container_name: cadvisor
+  node-exporter:
+    image: prom/node-exporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command: 
+      - '--path.procfs=/host/proc' 
+      - '--path.sysfs=/host/sys'
+      - --collector.filesystem.ignored-mount-points
+      - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
+    ports:
+      - 9100:9100
+    networks:
+           mynet:
+            ipv4_address: 172.15.0.104
+    restart: always
+    container_name: node-exporter
+  loki:
+    image: grafana/loki:master
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    #volumes:
+    #  - ./loki-promtail-conf.yml:/etc/promtail/docker-config.yaml
+    networks:
+           mynet:
+            ipv4_address: 172.15.0.105
+    container_name: loki
+  promtail:
+    image: grafana/promtail:master
+    volumes:
+      - /var/log:/var/log
+      - /var/log/nginx:/var/log/nginx
+      - /var/lib/docker/containers:/var/lib/docker/containers
+      - ./promtail-conf.yml:/etc/promtail/docker-config.yaml
+    command: -config.file=/etc/promtail/docker-config.yaml
+    networks:
+           mynet:
+            ipv4_address: 172.15.0.106
+    container_name: promtail

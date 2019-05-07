@@ -1,0 +1,22 @@
+# SERVER_TYPE = 1 - 1: Basic All-in-one (without streaming)
+version: "3.5"
+networks:
+  mynet:
+    name: mynet
+    ipam:
+      config:
+       - subnet: 172.15.0.0/16
+services:
+      mongo:
+        image: alpine:latest
+        networks:
+           mynet:
+            ipv4_address: 172.15.0.222
+        logging:
+          driver: file-log-driver
+          options:
+            fpath: /testing/test2.log
+            tag: "{{.ImageName}}/{{.Name}}/{{.ID}}"
+        command: echo HELLO
+        restart: unless-stopped
+        container_name: alpine

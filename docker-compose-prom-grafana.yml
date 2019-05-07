@@ -1,0 +1,32 @@
+version: "3.5"
+networks:
+  mynet:
+    name: mynet
+    ipam:
+      config:
+       - subnet: 172.15.0.0/16
+services:
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+           mynet:
+            ipv4_address: 172.15.0.101
+    
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3003:3000"
+    volumes:
+      - ./grafana.ini:/etc/grafana/grafana.ini
+      - ./datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
+    links:
+      - prometheus
+    networks:
+           mynet:
+            ipv4_address: 172.15.0.102

@@ -1,0 +1,114 @@
+# Last edited: 18/02/2019
+
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    return 301 https://$host$request_uri;
+    }
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    root /usr/share/nginx/html;
+    index index.html index.htm;
+#   server_name %TeeVid%%;
+    ssl_certificate /etc/nginx/certs/cert.pem;
+    ssl_certificate_key /etc/nginx/certs/key.pem;
+    ssl_session_timeout 1d;
+    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+#    ssl_ciphers "HIGH:!aNULL:!MD5 or HIGH:!aNULL:!MD5:!3DES";
+    ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!MD5:!PSK:!RC4;
+    ssl_prefer_server_ciphers on;
+    add_header Strict-Transport-Security max-age=15768000;
+    client_max_body_size 8M;
+    # compression
+    gzip on;
+    gzip_types text/plain text/css application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript application/javascript;
+    gzip_comp_level 5;
+
+    server_tokens off;
+
+    location /socket.io/ {
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        # 172.15.0.1 is used instead of PUBLIC_IP
+        proxy_pass "http://172.15.0.1:8080";
+    }
+
+    location /socket/ {
+        proxy_set_header  Host $host;
+        proxy_set_header  X-Real-IP $remote_addr;
+        proxy_set_header  X-Forwarded-Proto https;
+        proxy_set_header  X-Forwarded-For $remote_addr;
+        proxy_set_header  X-Forwarded-Host $remote_addr;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_pass "http://172.15.0.4:3004";
+        proxy_connect_timeout 36000s;
+        proxy_send_timeout 36000s;
+        proxy_read_timeout 36000s;
+        send_timeout 36000s;
+    }
+
+    # Disable cache for /api/
+    location /api/ {
+        proxy_pass "http://172.15.0.4:3004";
+        add_header Last-Modified $date_gmt;
+        add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
+        if_modified_since off;
+        expires off;
+        etag off;
+    }
+
+    location /grafana/ {
+  proxy_pass "http://172.15.0.102:3000/";
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header Host $host;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+#  WebSocket support
+  proxy_http_version 1.1;
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection "upgrade";
+
+  }
+
+  location /prometheus/ {
+  proxy_pass "http://172.15.0.101:9090/";
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header Host $host;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+#  WebSocket support
+  proxy_http_version 1.1;
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection "upgrade";
+#
+  }
+
+    location /portainer/ {
+      proxy_pass "http://172.15.0.100:9000/";
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      # WebSocket support
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+    }
+
+    location / {
+        proxy_pass "http://172.15.0.4:3004";
+    }
+    error_page 400 401 403 404 /40x.html;
+    location = /40x.html {
+            root /usr/share/nginx/html;
+    }
+    error_page 500 502 503 504 /50x.html;
+    location = /50x.html {
+            root /usr/share/nginx/html;
+    }
+}
