@@ -16,7 +16,7 @@ Example: `alpine.yml`
 - https://grafana.com/docs/installation/docker/
 - https://grafana.com/docs/installation/behind_proxy/
 
-`grafana.ini`
+- `grafana.ini`
 ```
 Ensure domain and root_url are configured for grafana.ini
 # The public facing domain name used to access grafana from a browser
@@ -27,4 +27,6 @@ domain = server.com
 # root_url = %(protocol)s://%(domain)s:%(http_port)s/
 root_url = %(protocol)s://%(domain)s/grafana/
 ```
+
+- `promtail-conf.yml` - used for log source specification
 
